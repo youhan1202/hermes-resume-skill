@@ -1,0 +1,53 @@
+# Push 日志
+
+## 2026-07-15 15:30 - 初始上传 Skill 文件
+
+**方式**: GitHub API  
+**改动**: 新增 7 个文件
+
+### 文件列表
+```
+risfond-resume-report/
+├── SKILL.md                              (15.4 KB)
+├── references/
+│   ├── candidate-file-reading.md        (1.7 KB)
+│   ├── eight-sample-analysis.md         (2.0 KB)
+│   ├── reading-old-doc-files.md         (1.6 KB)
+│   ├── subagent-prompt-template.md      (1.6 KB)
+│   └── windows-quirks.md               (1.3 KB)
+└── scripts/
+    └── gen_resume_report.py             (5.7 KB)
+```
+
+### 主要改动
+- 创建完整的简历报告 Skill 规范
+- 包含排版结构、字体格式、颜色规范
+- 核心优势写作要点（4条结构）
+- 用户偏好风格（高信息密度版）
+- 学历判断规则（统招/非统招）
+- 0-1经验表达模板
+- 年营收标注规则（不能跨公司合计）
+
+---
+
+## 2026-07-15 15:45 - 更新 README.md
+
+**方式**: GitHub API  
+**改动**: 更新 README.md，添加跨平台使用说明
+
+### 主要改动
+- 添加 Hermes Agent 安装命令
+- 添加 Coze/Dify/其他平台使用方法
+- 添加手动下载 ZIP 链接
+- 完善文件说明目录结构
+- 添加功能特性介绍
+- 添加核心规范要点
+- 添加使用流程说明
+- 添加注意事项
+
+---
+
+## 备注
+
+- 所有 push 通过 GitHub API 完成（git push 因网络问题失败）
+- 仓库地址: https://github.com/youhan1202/hermes-resume-skill
