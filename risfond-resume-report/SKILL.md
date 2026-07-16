@@ -234,7 +234,7 @@ Base地点：（可选）
 
 ### 段落格式
 - 页边距：上下2.54cm，左右3.17cm
-- 行距：1.15倍行距
+- 行距：1.5倍行距
 - 段前段后：0pt
 - 工作经历标题行内三段用 `\t` 分隔（时间\t公司\t职位）
 - 每段工作经历之间用空行分隔
@@ -242,32 +242,42 @@ Base地点：（可选）
 
 ### 关键代码模板
 ```python
-from docx.shared import Pt, RGBColor
+from docx import Document
+from docx.shared import Pt, RGBColor, Cm
+
+doc = Document()
+
+# 设置页边距
+for section in doc.sections:
+    section.top_margin = Cm(2.54)
+    section.bottom_margin = Cm(2.54)
+    section.left_margin = Cm(3.17)
+    section.right_margin = Cm(3.17)
+
+# 设置默认字体和行距
+style = doc.styles['Normal']
+style.font.name = '宋体'
+style.font.size = Pt(10.5)
+style.paragraph_format.line_spacing = 1.5  # 1.5倍行距
+style.paragraph_format.space_before = Pt(0)
+style.paragraph_format.space_after = Pt(0)
 
 BLUE = RGBColor(0x2E, 0x75, 0xB5)
 BLACK = RGBColor(0, 0, 0)
 
-# 设置默认字体
-style = doc.styles['Normal']
-style.font.name = '宋体'
-style.font.size = Pt(10.5)
-
-# 辅助函数：添加 run
 def R(p, text, bold=False, size=10.5, color=None):
     run = p.add_run(text)
     run.bold = bold
     run.font.size = Pt(size)
     run.font.name = '宋体'
-    run.font.color.rgb = color if color else BLACK  # 必须显式设置
+    run.font.color.rgb = color if color else BLACK
     return run
 
-# 工作经历标题行示例
-p = doc.add_paragraph()
-R(p, '2022/08-2025/08(3年)', bold=True, color=BLUE)
-R(p, '\t', bold=True, color=BLUE)
-R(p, '常州毕方汽车系统有限公司', bold=True, color=BLUE)
-R(p, '\t', bold=True, color=BLUE)
-R(p, '采购经理', bold=True, color=BLUE)
+def add_p(text='', bold=False, size=10.5, color=None):
+    p = doc.add_paragraph()
+    if text:
+        R(p, text, bold=bold, size=size, color=color)
+    return p
 ```
 
 ## 六、生成后动作
