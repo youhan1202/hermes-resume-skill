@@ -1,14 +1,15 @@
-"""锐仕方达简历报告生成脚本模板（2026-07 样板强化版）
-对齐张海默样板规范：①基本信息4行×2列无边框表格（无到岗周期行，并入【职业状态】）
-②中文宋体+西文Times New Roman ③项目经历板块（销售/项目型岗位默认需要）
-④标题图片：默认用skill assets标准图 ⑤公司介绍标签加粗内容不加粗
+"""锐仕方达简历报告生成脚本模板（2026-09 页眉页脚版）
+对齐规范：①页眉左对齐logo图片 ②正文首行居中"简历报告"标题图
+③页脚：公司名+地址+电话 ④基本信息4行×2列无边框表格
+⑤中文宋体+西文Times New Roman ⑥项目经历板块
 使用：复制本脚本到工作目录，修改候选人信息区后 python gen_resume_report.py
 """
 import os
 from docx import Document
-from docx.shared import Pt, Cm, RGBColor
+from docx.shared import Pt, Cm, RGBColor, Emu
 from docx.oxml.ns import qn
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.section import WD_ORIENT
 
 doc = Document()
 
@@ -24,11 +25,71 @@ style.paragraph_format.space_after = Pt(0)
 style.paragraph_format.space_before = Pt(0)
 style.paragraph_format.line_spacing = 1.5
 
+# ===== 页面设置：页边距 + 页眉页脚 =====
 for section in doc.sections:
     section.top_margin = Cm(2.54)
     section.bottom_margin = Cm(2.54)
     section.left_margin = Cm(3.17)
     section.right_margin = Cm(3.17)
+    section.header_distance = Cm(1.0)   # 页眉距边界
+    section.footer_distance = Cm(1.0)   # 页脚距边界
+
+# ===== 页眉：左对齐 logo 图片 =====
+ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'assets')
+HEADER_LOGO = os.path.join(ASSETS, 'header_logo.png')
+
+section = doc.sections[0]
+header = section.header
+header.is_linked_to_previous = False
+
+if os.path.exists(HEADER_LOGO):
+    # 清空默认段落
+    for p in header.paragraphs:
+        p.clear()
+    hp = header.paragraphs[0]
+    hp.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    run = hp.add_run()
+    run.add_picture(HEADER_LOGO, width=Cm(6))   # 页眉logo宽度6cm，保持纵横比
+else:
+    # 无图片时用文字
+    hp = header.paragraphs[0]
+    hp.clear()
+    R_h = hp.add_run('锐仕方达 RISFOND')
+    R_h.bold = True
+    R_h.font.size = Pt(14)
+    R_h.font.color.rgb = RGBColor(0x00, 0x50, 0x8E)
+    R_h.font.name = 'Times New Roman'
+    R_h.element.rPr.rFonts.set(qn('w:eastAsia'), '宋体')
+
+# ===== 页脚：公司名 + 地址 + 电话 =====
+footer = section.footer
+footer.is_linked_to_previous = False
+
+# 清空默认段落
+for p in footer.paragraphs:
+    p.clear()
+
+# 页脚内容（三行居中）
+footer_lines = [
+    '公司：锐仕方达人才科技集团有限公司常州第一分公司',
+    '地址：常州市武进区湖塘镇吾悦广场1幢12B03-12B05号',
+    '公司电话：15295000586',
+]
+
+for i, line in enumerate(footer_lines):
+    if i == 0:
+        fp = footer.paragraphs[0]
+    else:
+        fp = footer.add_paragraph()
+    fp.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    fp.paragraph_format.space_before = Pt(0)
+    fp.paragraph_format.space_after = Pt(0)
+    fp.paragraph_format.line_spacing = 1.0
+    run = fp.add_run(line)
+    run.font.size = Pt(8)   # 页脚用小号字
+    run.font.name = 'Times New Roman'
+    run.font.color.rgb = RGBColor(0x66, 0x66, 0x66)   # 灰色
+    run.element.rPr.rFonts.set(qn('w:eastAsia'), '宋体')
 
 
 def R(p, text, bold=False, size=10.5, color=None):
@@ -61,8 +122,25 @@ def NL():
     doc.add_paragraph()
 
 
-# ===== 标题图片：skill assets 标准图（用户提供参考文件时改用参考文件提取图）=====
-ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'assets')
+# ===== 正文首行：顶部标题图居中 =====
+TITLE_REPORT_IMG = os.path.join(ASSETS, 'title_report.png')
+
+if os.path.exists(TITLE_REPORT_IMG):
+    p_title = doc.add_paragraph()
+    p_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_title.paragraph_format.space_before = Pt(6)
+    p_title.paragraph_format.space_after = Pt(12)
+    run_title = p_title.add_run()
+    run_title.add_picture(TITLE_REPORT_IMG, width=Cm(15))   # 标题图宽度15cm，保持纵横比
+else:
+    # 无图片时用文字
+    p_title = doc.add_paragraph()
+    p_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    R(p_title, '简历报告', bold=True, size=18, color=RGBColor(0x00, 0x50, 0x8E))
+    p_title.paragraph_format.space_after = Pt(12)
+
+
+# ===== 模块标题图片 =====
 TITLE_IMGS = {
     'basic': os.path.join(ASSETS, 'title_basic_info.png'),
     'edu': os.path.join(ASSETS, 'title_education.png'),
@@ -165,7 +243,7 @@ EDUCATION_ITEMS = [
 
 # ===== 生成文档（以下一般无需修改）=====
 
-# 标题
+# 推荐信息
 P([('推荐职位：' + POSITION, True, 10.5, None), ('\t推荐顾问：Alfred', True, 10.5, None)])
 S('推荐日期：' + __import__('datetime').datetime.now().strftime('%Y-%m-%d'), bold=True)
 
