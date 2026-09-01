@@ -37,7 +37,10 @@ related: []
    - 用户通常会迭代2-4轮修改（调整顺序、措辞、增删条目）
    - 核心优势确认后，用户可能继续补充信息（年龄、到岗周期等），记下来一并写入报告
    - **常见修改方向**：第1条只留学历、第2条将设计能力前置编程后放、去除非岗位相关描述
+   - **核心优势第2条排序（2026-08-18 确认）**：默认时间倒序，可要求将与目标岗位更相关的经历前置（如目标炉管岗则炉管经验前置），写入前需与用户确认
+2.5 **输出【综合评估】全文预览（2026-08-18 新增）**：核心优势确认后、生成 docx 前，先输出完整【综合评估】板块文字（职业经历→核心优势→职业状态→家庭情况→薪资结构→意向度），用户确认 OK 后再生成 docx（区别于第2步仅输出核心优势文本）
 3. **确认后撰写**：通过 `delegate_task` 委托 doubao 模型撰写完整报告（若 delegation 未启用则由 DeepSeek 直接执行生成脚本）
+   - **并行优化（2026-08-18）**：综合评估确认后，并行启动 delegate_task 搜索公司介绍 + 准备生成脚本，节省等待时间
    - 首选：doubao-seed-2-1-pro-260628（volcengine-ark）
    - ⚠️ 若 API 429 限流（Safe Experience Mode 触发），降级至 doubao-seed-2-0-pro-260215
    - 子代理提示词模板要点：告知完整资料、要求 python-docx 生成、中文宋体+西文Times New Roman五号10.5pt、行距1.5倍、基本信息4行×2列无边框表格、工作经历/项目经历标题行#2E75B5、汇报对象/下属人数#000000、核心优势自然段落不拆两层、销售岗默认带项目经历板块（项目介绍/项目职责/项目业绩三段）、顾问名Alfred、薪资格式Xk*X薪=XXw税前、必须用qn('w:eastAsia')设置中文字体为宋体否则Word渲染为MS明朝
@@ -97,16 +100,44 @@ related: []
 - `references/github-api-push.md` — git直连超时时用GitHub API推送skill更新的方法
 - `references/it-industry-company-intros.md` — IT/算力/互联网行业常见公司100字标准介绍，可直接复用无需重复搜索
 - `assets/title_basic_info.png` / `title_education.png` / `title_work_experience.png` / `title_project_experience.png` — 标准模块标题图片（基本信息/教育背景/工作经历/项目经历，580×48），无参考文件时默认使用
+- `assets/header_logo.png` — 页眉左对齐 logo 图片（锐仕方达 RISFOND）
+- `assets/title_report.png` — 正文首行居中"简历报告"标题图
 
 ## 一、整体排版结构
 
-### 1. 标题信息（页眉区）
+### 0. 页眉页脚与顶部标题（2026-09 新增）
+
+**页眉（header_logo.png）**：
+- 图片：`assets/header_logo.png`（锐仕方达 RISFOND logo）
+- 位置：页面顶部，**左对齐**
+- 宽度：6cm，保持原始纵横比
+- 通过 python-docx `section.header` 设置，`WD_ALIGN_PARAGRAPH.LEFT`
+
+**顶部标题（title_report.png）**：
+- 图片：`assets/title_report.png`（"简历报告"标题图）
+- 位置：正文第一行，**居中**
+- 宽度：15cm，保持原始纵横比
+- 在推荐信息之前插入，作为报告封面标题
+- 段前 6pt，段后 12pt
+
+**页脚**：
+- 三行左对齐，灰色小字（8pt，#666666）
+- 内容：
+  ```
+  公司：锐仕方达人才科技集团有限公司常州第一分公司
+  地址：常州市武进区湖塘镇吾悦广场1幢12B03-12B05号
+  公司电话：15295000586
+  ```
+- 通过 python-docx `section.footer` 设置，`WD_ALIGN_PARAGRAPH.LEFT`
+- 行距 1.0，段前段后 0pt
+
+### 1. 标题信息（正文区，顶部标题之后）
 推荐职位：XXX	推荐顾问：Alfred
 推荐日期：YYYY-MM-DD（或 YYYY-M-D 均可，如 2026-3-3）
 ⚠️ 推荐职位行可选——如果用户未提供目标职位，可省略此行直接从基本信息开始
 
 ⚠️ **图片使用规则**：
-- **不要锐仕方达企业logo图片**
+- **不要锐仕方达企业logo图片**（logo 已在页眉中展示）
 - **不要装饰性分隔线图片**（含页眉横幅长条图，如 1180×64 顶部横幅）
 - **默认行为①**：如果用户提供了参考文件（.doc/.docx），提取参考文件中的模块标题图片（基本信息/教育背景/工作经历/项目经历，特征是 580×48 左右的狭长横幅图）作为对应模块的标题
 - **默认行为②**：无参考文件时，使用 skill `assets/` 目录内置的 4 张标准标题图片（title_basic_info.png / title_education.png / title_work_experience.png / title_project_experience.png）
@@ -315,6 +346,7 @@ Base地点：（可选）
 3. **行业关键词**：突出目标岗位所在行业的专业术语
 4. **工具/体系/标准**：具体列出掌握的工具、体系、认证
 5. **逻辑递进**：学历→经验→技能→附加优势
+6. **只写客观事实，禁止主观推测**（用户偏好 2026-08-25）：不写"获客户充分信任"、"客户指定本人对接"等无事实支撑的主观评价；每条控制在1-2句，精简不冗长
 
 ### ⚠️ 注意事项
 - 核心优势不加粗，使用默认黑色字体
@@ -449,21 +481,69 @@ Base地点：（可选）
 - 每段工作经历之间用空行分隔
 - **基本信息卡片中，每个字段独占一行，字段之间不要空行**
 - **教育背景内容无段前距，无开头空格**
-
 ### 关键代码模板
 ```python
 from docx import Document
 from docx.shared import Pt, RGBColor, Cm
 from docx.oxml.ns import qn
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 doc = Document()
 
-# 设置页边距
+# 设置页边距 + 页眉页脚距离
 for section in doc.sections:
     section.top_margin = Cm(2.54)
     section.bottom_margin = Cm(2.54)
     section.left_margin = Cm(3.17)
     section.right_margin = Cm(3.17)
+    section.header_distance = Cm(1.0)
+    section.footer_distance = Cm(1.0)
+
+# ===== 页眉：左对齐 logo =====
+ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'assets')
+HEADER_LOGO = os.path.join(ASSETS, 'header_logo.png')
+section = doc.sections[0]
+header = section.header
+header.is_linked_to_previous = False
+if os.path.exists(HEADER_LOGO):
+    for p in header.paragraphs:
+        p.clear()
+    hp = header.paragraphs[0]
+    hp.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    run = hp.add_run()
+    run.add_picture(HEADER_LOGO, width=Cm(6))   # 页眉logo宽度6cm
+
+# ===== 页脚：公司信息居中 =====
+footer = section.footer
+footer.is_linked_to_previous = False
+for p in footer.paragraphs:
+    p.clear()
+footer_lines = [
+    '公司：锐仕方达人才科技集团有限公司常州第一分公司',
+    '地址：常州市武进区湖塘镇吾悦广场1幢12B03-12B05号',
+    '公司电话：15295000586',
+]
+for i, line in enumerate(footer_lines):
+    fp = footer.paragraphs[0] if i == 0 else footer.add_paragraph()
+    fp.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    fp.paragraph_format.space_before = Pt(0)
+    fp.paragraph_format.space_after = Pt(0)
+    fp.paragraph_format.line_spacing = 1.0
+    run = fp.add_run(line)
+    run.font.size = Pt(8)
+    run.font.name = 'Times New Roman'
+    run.font.color.rgb = RGBColor(0x66, 0x66, 0x66)
+    run.element.rPr.rFonts.set(qn('w:eastAsia'), '宋体')
+
+# ===== 正文首行：顶部标题图居中 =====
+TITLE_REPORT_IMG = os.path.join(ASSETS, 'title_report.png')
+if os.path.exists(TITLE_REPORT_IMG):
+    p_title = doc.add_paragraph()
+    p_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_title.paragraph_format.space_before = Pt(6)
+    p_title.paragraph_format.space_after = Pt(12)
+    run_title = p_title.add_run()
+    run_title.add_picture(TITLE_REPORT_IMG, width=Cm(15))   # 标题图宽度15cm
 
 # 设置默认字体和行距
 style = doc.styles['Normal']
