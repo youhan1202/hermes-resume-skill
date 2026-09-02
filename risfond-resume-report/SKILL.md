@@ -608,7 +608,13 @@ def add_project(time_range, proj_name, role, intro=None, duties=None, results=No
             R(p, d)
 ```
 
-## 六、生成后动作
+## 六、文件命名规范
+
+报告文件名统一格式：**锐仕方达-人选名字-职位.docx**
+- 示例：`锐仕方达-滑青松-区域产品管理负责人.docx`
+- 职位名中如含斜杠 `/` 则去掉（如"信息化总监/CTO"→"信息化总监CTO"），正文可保留
+
+## 七、生成后动作
 - 保存为 .docx 后，用 `Invoke-Item "文件路径.docx"` 自动打开
 
 ## 七、常见陷阱
@@ -682,6 +688,7 @@ run.element.rPr.rFonts.set(qn('w:eastAsia'), '宋体')
 - ⚠️ **不要等用户提醒才提取图片**——提供参考文件时，第一步就应该用 Word COM + zipfile + PIL 提取并分析图片
 - 标题图片替代的是【】文字标题的位置，不是额外添加
 - 绝对不要添加企业logo或装饰性分隔线图片
+- **标题图片宽度统一9cm**（锁定纵横比），通过 `run.add_picture(path, width=Cm(9))` 实现
 
 ### 7.11 必须包含工作经历
 - 教育背景后必须接工作经历内容
