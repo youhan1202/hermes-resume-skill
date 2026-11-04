@@ -1,8 +1,11 @@
-"""锐仕方达简历报告生成脚本模板（2026-09 页眉页脚版）
+"""锐仕方达简历报告生成脚本模板（2026-11 可配置顾问名版）
 对齐规范：①页眉左对齐logo图片 ②正文首行居中"简历报告"标题图
 ③页脚：公司名+地址+电话 ④基本信息4行×2列无边框表格
 ⑤中文宋体+西文Times New Roman ⑥项目经历板块
-使用：复制本脚本到工作目录，修改候选人信息区后 python gen_resume_report.py
+使用：复制本脚本到工作目录，修改下方「配置区」后 python gen_resume_report.py
+
+顾问名可配置：环境变量 RISFOND_ADVISOR 优先，其次下方 ADVISOR。
+团队多人使用时各自设自己的环境变量即可，不必改脚本其他地方。
 """
 import os
 from docx import Document
@@ -10,6 +13,10 @@ from docx.shared import Pt, Cm, RGBColor, Emu
 from docx.oxml.ns import qn
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.section import WD_ORIENT
+
+# ===== 配置区 =====
+ADVISOR = os.environ.get('RISFOND_ADVISOR', 'Alfred')   # 推荐顾问名（可配置）
+# ================
 
 doc = Document()
 
@@ -244,7 +251,7 @@ EDUCATION_ITEMS = [
 # ===== 生成文档（以下一般无需修改）=====
 
 # 推荐信息
-P([('推荐职位：' + POSITION, True, 10.5, None), ('\t推荐顾问：Alfred', True, 10.5, None)])
+P([('推荐职位：' + POSITION, True, 10.5, None), ('\t推荐顾问：' + ADVISOR, True, 10.5, None)])
 S('推荐日期：' + __import__('datetime').datetime.now().strftime('%Y-%m-%d'), bold=True)
 
 # 基本信息：4行×2列无边框表格（标题图片可选）
