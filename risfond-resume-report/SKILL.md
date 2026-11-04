@@ -40,12 +40,10 @@ related: []
    - **核心优势第2条排序（2026-08-18 确认）**：默认时间倒序，可要求将与目标岗位更相关的经历前置（如目标炉管岗则炉管经验前置），写入前需与用户确认
    - **JD 定向对齐（2026-10-10 确认）**：用户提供目标岗位 JD 时，可据此调整核心优势排序与措辞，使第2/3条更贴近 JD 关键词与能力要求；调整前先给用户看草稿，确认后再生成
 2.5 **输出【综合评估】全文预览（2026-08-18 新增）**：核心优势确认后、生成 docx 前，先输出完整【综合评估】板块文字（职业经历→核心优势→职业状态→家庭情况→薪资结构→意向度），用户确认 OK 后再生成 docx（区别于第2步仅输出核心优势文本）
-3. **确认后撰写**：通过 `delegate_task` 委托 doubao 模型撰写完整报告（若 delegation 未启用则由 DeepSeek 直接执行生成脚本）
-   - **并行优化（2026-08-18）**：综合评估确认后，并行启动 delegate_task 搜索公司介绍 + 准备生成脚本，节省等待时间
-   - 首选：doubao-seed-2-1-pro-260628（volcengine-ark）
-   - ⚠️ 若 API 429 限流（Safe Experience Mode 触发），降级至 doubao-seed-2-0-pro-260215
+3. **确认后撰写**：由主模型直接生成脚本并产出完整报告（若你的平台支持多模型协作/子代理，可委托另一个模型撰写，要点见 `references/subagent-prompt-template.md`）
+   - **并行优化（2026-08-18）**：综合评估确认后，可并行执行「搜索公司介绍」+「准备生成脚本」，节省等待时间
    - 子代理提示词模板要点：告知完整资料、要求 python-docx 生成、中文宋体+西文Times New Roman五号10.5pt、行距1.5倍、基本信息4行×2列无边框表格、工作经历/项目经历标题行#2E75B5、汇报对象/下属人数#000000、核心优势自然段落不拆两层、销售岗默认带项目经历板块（项目介绍/项目职责/项目业绩三段）、顾问名Alfred、薪资格式Xk*X薪=XXw税前、必须用qn('w:eastAsia')设置中文字体为宋体否则Word渲染为MS明朝
-4. **验证与交付**：检查内容完整性，Invoke-Item 自动打开文件
+4. **验证与交付**：检查内容完整性，自动打开文件（Windows: `Invoke-Item`；macOS: `open`；Linux: `xdg-open`）
 
 ### 用户补充信息处理
 用户常在提供候选人资料时附带简短笔记（如"前期商业调查 收购 商业谈判"、"和正 土建尾声 设备进场安装阶段进入"、"看机会原因：资金链断裂"等），这些是**权威信息**，必须：
@@ -697,7 +695,7 @@ run.element.rPr.rFonts.set(qn('w:eastAsia'), '宋体')
 - 用户只提供了简历PDF，没有参考报告
 
 **搜索内容**：成立时间、总部/上市信息、主营业务、核心产品/客户、规模数据（注册资本/占地面积/年营收等）。
-**搜索方式**：使用 `china-web-search` skill 中的 search.py 脚本搜索公司全称。
+**搜索方式**：用你平台自带的网页搜索工具搜索公司全称（关键词=公司完整名称）。
 **不可接受的情况**：直接写 `add_p('公司介绍：', bold=False)` 而不提供具体内容。
 
 **搜索失败时的降级策略**：
@@ -841,9 +839,9 @@ for i, p in enumerate(doc.paragraphs):
 
 第 1 步：找一份近期真实样本（用户自己出的报告优先，如 `Desktop\人选简历\**\锐仕方达-*.docx`）
 
-第 2 步：跑反编译脚本
+第 2 步：跑反编译脚本（路径按你的技能安装位置调整）
 ```bash
-python "D:\Hermes Agent CN Desktop\data\hermes-home\skills\productivity\risfond-resume-report\scripts\docx_reverse_engineer.py" <样本.docx>
+python <技能目录>/scripts/docx_reverse_engineer.py <样本.docx>
 ```
 输出：页面设置、Normal 样式、页眉页脚 XML（含图片在对齐）、正文图片插入尺寸、逐段落属性、表格、media 原图尺寸。
 
@@ -882,11 +880,10 @@ diff mine.txt sample.txt
 4. 再失败 → 降级存为 `xxx_new.docx` 并在交付里说明
 5. ⚠️ 顺带清理 `~$` 开头的 Office 锁文件，它也会导致替换失败
 
-## 维护说明（curation 保护）
-本技能受 curation 保护（created_by=None），`skill_manage(action='patch'/'write_file')` 会被拒。修改方式：
-1. 本地直接改文件（patch 工具直接编辑 SKILL.md 与 references/）
-2. 或推 GitHub 仓库 `youhan1202/hermes-resume-skill` 后 install
-3. 中文 Windows 上 `hermes skills install` 可能 GBK 报错（UnicodeEncodeError），改用 GitHub API 下载 SKILL.md + `skill_manage(action='create')` 手动建技能
+## 维护说明
+- **直接编辑**：本技能的 SKILL.md 与 references/ 就是普通 markdown 文件，可直接用编辑器或 patch 工具修改
+- **分发方式**：推送到 Git 仓库后，其他平台按各自机制安装；也可把整个目录复制给对方，或把 SKILL.md 当提示词直接用
+- 已知坑：中文 Windows 上某些技能安装命令可能报 GBK/UnicodeEncodeError，此时改用「下载 SKILL.md 后手动创建技能」
 
 ## 报告流程约定（用户澄清纪律）
 - 用户笔记中薪资/关键字段表述含糊或疑似笔误（如 barns→Bonus）时，**先向用户澄清最终写法再写入**，不自行猜测
@@ -896,7 +893,7 @@ diff mine.txt sample.txt
 1. **生成脚本输出文件名含 `/` 会 FileNotFoundError**：职位名如"信息化总监/CTO"存文件名时去掉斜杠（报告正文可保留斜杠）
 2. **zipfile 提取参考报告 word/media/ 图片时跳过空目录条目**：否则 PIL 报 UnidentifiedImageError；参考报告无 580×48 标准标题横幅图时直接用 skill assets 内置 4 张图
 3. **核心优势第2条用户偏好直接嵌公司名表述**（2026-08 阮文杰："超11年大型钢铁集团南钢金恒"），不写"从基层成长至核心管理层"式铺垫
-4. **⚠️ 脚本复制到工作目录后 assets 找不到（2026-10 杨凡报告实测）**：模板 `scripts/gen_resume_report.py` 用 `ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'assets')`，仅在脚本位于技能 `scripts/` 目录下时有效。一旦把脚本复制到工作目录（如 `D:\hermes猎头\`）运行，`assets/` 不存在 → 页眉 logo、"简历报告"大标题、基本信息/教育背景/工作经历/项目经历标题图**全部缺失**（header_logo 退化为蓝色文字、模块标题退化为【】文字、顶部大标题直接没有），用户会反馈"页面布局不正确"。**解决**：脚本中 ASSETS 必须写死技能 assets 绝对路径：`ASSETS = r'D:\Hermes Agent CN Desktop\data\hermes-home\skills\productivity\risfond-resume-report\assets'`。**自检**：生成后导 PDF 渲染首屏，确认页眉有 RISFOND 图片 logo、正文首行有居中"候选人简历报告"标题图、各模块有英文副标题的标题图。
+4. **⚠️ 脚本复制到工作目录后 assets 找不到（2026-10 实测）**：若脚本用 `ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'assets')`，仅在脚本位于技能 `scripts/` 目录下时有效。一旦把脚本复制到工作目录运行，`assets/` 不存在 → 页眉 logo、"简历报告"大标题、基本信息/教育背景/工作经历/项目经历标题图**全部缺失**（header_logo 退化为蓝色文字、模块标题退化为【】文字、顶部大标题直接没有），用户会反馈"页面布局不正确"。**解决**：ASSETS 指向技能 assets 的绝对路径（按你的安装位置填写），或用环境变量/配置项传入。**自检**：生成后导 PDF 渲染首屏，确认页眉有 RISFOND 图片 logo、正文首行有居中"候选人简历报告"标题图、各模块有标题图。
 5. **顶部"候选人简历报告"标题图容易漏写**：模板里只在注释/变量中定义了 TITLE_REPORT_IMG，实际插入段落的代码块需自己补（居中、宽 15cm、段前6pt段后12pt）。漏写会导致正文直接从"推荐职位"开始，没有封面大标题。
-6. **改 docx 时文件被 Word/WPS 锁定**：报 `PermissionError: [Errno 13]` 或 `0x800706BE`。先 `powershell -NoProfile -Command "Get-Process WINWORD,wps -ErrorAction SilentlyContinue | Stop-Process -Force"`，sleep 2 后再生成；或先存 `_v2` 新文件名。WPS 安装路径本机为 `D:\QMDownload\WPS Office\12.1.0.25225\office6\wps.exe`。
-7. **本机渲染校验链路（无 WINWORD，用 WPS COM）**：`New-Object -ComObject Word.Application`（WPS 提供该 COM）→ `$doc.ExportAsFixedFormat($pdf,17)` 导 PDF；英文纯 ASCII 的 .ps1 免 BOM 编码坑；PDF 用 pymupdf 渲染成 PNG 后用 vision 检查版式。COM 调用末尾 `$app.Quit()` 常报 RPC 异常但 PDF 已成功落地，检查 `Test-Path $pdf` 即可。
+6. **改 docx 时文件被 Word/WPS 锁定**：报 `PermissionError: [Errno 13]` 或 `0x800706BE`。先结束 Word/WPS 进程，sleep 2 秒后再生成；或先存 `_v2` 新文件名。目录下 `~$` 开头的 Office 锁文件也要一并清理，否则文件替换仍会失败。
+7. **渲染校验链路（Windows 无 MS Office 时用 WPS COM）**：`New-Object -ComObject Word.Application`（WPS 提供该 COM）→ `$doc.ExportAsFixedFormat($pdf,17)` 导 PDF；英文纯 ASCII 的 .ps1 免 BOM 编码坑；PDF 用 pymupdf 渲染成 PNG 后用 vision 检查版式。COM 调用末尾 `$app.Quit()` 常报 RPC 异常但 PDF 已成功落地，检查 `Test-Path $pdf` 即可。**注意**：WPS COM 对只读位置（如某些同步目录）的 .doc 会报 3010，需先复制到可写目录再调 `KWPS.Application`。
